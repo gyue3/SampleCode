@@ -1,0 +1,18 @@
+<!-- views/index.ejs -->
+<!doctype html>
+<html>
+<head>
+    <title>Error <%= env %></title>
+</head>
+<body>
+<div class="container">
+    <h1><%= message %></h1>
+    <h2><%= error %></h2>
+    <ul>
+    <% for(var i=0; i<error.length; i++) {%>
+        <li><%= error[i] %></li>
+    <% } %>
+    </ul>
+</div>
+</body>
+</html>

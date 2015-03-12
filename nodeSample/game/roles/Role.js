@@ -1,0 +1,3 @@
+function Role() {
+		var alignment;
+}

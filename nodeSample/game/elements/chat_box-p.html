@@ -1,0 +1,181 @@
+<link rel="import" href="http://54.201.46.195:8080/bower_components/polymer/polymer.html">
+<script type="text/javascript" src="/node_modules/socket.io/node_modules/socket.io-client/socket.io.js"></script>
+
+<polymer-element name="chat_box-p" attributes="user">
+	<template>
+		<link rel="stylesheet" type="text/css" href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.1/superhero/bootstrap.min.css">
+
+		<style>
+			.chat_wrapper{
+				width: 400px;
+				height: 500px;
+				border: solid 1px;
+				background-color: #337676;
+			}
+			.name_wrapper {
+				height:10%;
+				width:96%;
+				margin:auto;
+				margin-top:5px;
+				padding:0;
+			}
+			.user_wrapper {
+				padding-left:0;
+			}
+			.msg_window{
+				width: 96%;
+				height: 60%;
+				border: solid 1px;
+				margin: auto;
+				margin-top: 5px;
+				background-color: #FFF;
+				overflow: auto;
+			}
+			.input_wrapper{
+				width: 97%;
+				height: 20%;
+				margin: auto;
+				margin-top: 25px;
+				padding: 0;
+				display:block;
+			}
+			.input_window{
+				width: 70%;
+				height: 100%;
+				border: solid 1px;
+				background-color: #FFF;
+				padding: 0;
+				resize: none;
+			}
+			.input_button{
+				margin-left: 5px;
+				height: 100%;
+			}
+			.chat-message{
+				color: #000;
+			}
+
+		</style>
+		<h1>Hello {{user}}</h1>
+		<div class="chat_wrapper">
+
+			<div class="name_wrapper from-group container">
+				<div class="user_wrapper col-md-8">
+					<input type="text" id="user_name" class="form-control" placeholder="User Name">
+				</div>
+				<div class="col-md-4">
+					<label>Status: <span id="status">Idle</span></label>
+				</div>
+			</div>
+
+			<div id="messages" class="msg_window"></div>
+
+			<div class="input_wrapper container">
+				<textarea  id="input_text" class="input_window col-md-9 form_control"></textarea>
+				<button id="send_button" type="button" class="btn btn-success col-md-3 input_button">Send</button>
+			</div>
+		</div>
+	</template>
+	<script>
+		Polymer({
+			user: 'Guest',
+			ready: function() {
+				var self = this;
+				//console.log(this.shadowRoot.querySelector('#input_text'));
+
+				var getNode = function(s) {
+					return self.shadowRoot.querySelector(s);
+				};
+
+				var status = getNode('#status');
+				var textarea = getNode('#input_text');
+				var user_name = getNode('#user_name');
+				var messages = getNode('#messages');
+				var send_button = getNode('#send_button');
+				var defaultStatus = status.textContent;
+
+				setStatus = function(s){
+					status.textContent = s;
+
+					if(s !== defaultStatus)
+					{
+						var delay = setTimeout(function(){
+							setStatus(defaultStatus);
+							clearInterval(delay);
+						}, 3000);
+					}
+				};
+
+				try{
+					var socket = io.connect('http://54.201.46.195:8081');
+				}catch(e) {
+
+				}
+
+				if(socket !== undefined)
+				{
+					//Listen for output
+					socket.on('output', function(data){
+						if(data.length)
+						{
+							for(var i=0; i < data.length; i++)
+							{
+								var d = new Date(data[i].date);
+								var dateString = d.getHours() + ':' + d.getMinutes();
+
+								//Create message element
+								var message = document.createElement('div');
+								message.setAttribute('class', 'chat-message');
+
+								message.textContent = data[i].name + ' (' + dateString + '): ' + data[i].message;
+
+								//Append message element
+								messages.appendChild(message);
+								//Move scrollbar down if needed
+								messages.scrollTop = messages.scrollHeight;
+							}
+						}
+					});
+
+					//Listen for status
+					socket.on('status', function(data) {
+						setStatus((typeof data === 'object') ? data.message : data);
+
+						if(data.clear === true) {
+							textarea.value = '';
+						}
+					});
+
+
+					textarea.addEventListener('keydown', function(event) {
+						var self = this;
+						name = user_name.value;
+						if(event.which === 13 && event.shiftKey === false) {
+							emit_message(name, self.value);
+						}
+					});
+
+					send_button.addEventListener('click', function(event){
+						name = user_name.value;
+						message = textarea.value;
+						if(message != "")
+						{
+							emit_message(name, message);
+						}
+
+					});
+
+					function emit_message(user, msg) {
+
+						socket.emit('input', {
+							name: user,
+							message: msg
+						})
+
+					}
+				}
+
+			}
+		});
+	</script>
+</polymer-element>
