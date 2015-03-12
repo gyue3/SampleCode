@@ -1,0 +1,253 @@
+<script type='text/javascript'>
+	
+	setTimeout(function(){ ; }, 1000);  //Makes settimeout work for FF
+
+	function runAction(action, response)
+	{
+		WCR_RUNNER.action = action;
+		WCR_RUNNER.response = response;
+		WCR_RUNNER.timer = 2000;
+		WCR_RUNNER.timeOutCount = 0;
+		WCR_RUNNER.scriptTag = 0;
+		WCR_RUNNER.eid = -2;
+
+		setTimeout(startSerp, 2000);
+
+		//startSerp();
+	}
+
+	function startSerp() {
+		//var a = window.SliderObj.invoke("window.wcRetVal=(document.getElementById('rso')) ? '1' : '-1';", 'checkRSO');
+		var a = window.SliderObj.invoke("window.wcRetVal=(document.getElementById('wcr_serpId')) ? '1' : '0';", 'setRemoveIdFlag');
+		if(typeof a !== 'undefined') //IE does not have scope for callback so returns a value instead
+		{
+			//setRemoveIdFlag(a);
+			setRemoveIdFlag(a);
+		}
+	}
+
+	if(typeof window.WCR_RUNNER == 'undefined')
+	{
+		window.WCR_RUNNER = { };
+	}
+
+    function setRemoveIdFlag(obj) //Check if wcr_serpId is in dom and remove it if it is, called from CheckRSO
+    {
+        if(typeof obj != 'undefined')
+        {
+            if(obj == '1')
+			{
+                WCR_RUNNER.scriptTag = 'ie';
+            }
+
+            var a = window.SliderObj.invoke("window.wcRetVal=(document.getElementById('rso')) ? '1' : '-1';", 'checkRSO');
+        }else
+        {
+            var data = this;
+
+            if(data.retval == '1')
+            {
+                WCR_RUNNER.scriptTag = '1';
+                window.SliderObj.invoke("window.wcRetVal=(document.getElementById('wcr_serpId').className);", 'setEid');
+            }else 
+			{
+				//wcr_serpId already not set (first run)
+				window.SliderObj.invoke("window.wcRetVal=(document.getElementById('rso')) ? '1' : '-1';", 'checkRSO');
+			}
+        }
+
+        return;
+    }
+
+	function setEid(obj)
+	{
+		var data = this;
+		WCR_RUNNER.eid = data.retval;
+		window.SliderObj.invoke("window.wcRetVal=(document.getElementById('rso')) ? '1' : '-1';", 'checkRSO');
+		return;
+	}
+
+	function checkRSO(obj)
+	{
+		if(typeof obj !== 'undefined') //This Branch for IE
+		{	
+			if(obj == '1')
+			{
+				var rso = window.SliderObj.invoke("window.wcRetVal=document.getElementById('rso').innerHTML;", 'setCites');
+				setCites(rso);
+
+			}
+
+		}else //For Chrome and FF
+		{
+			var data = this;
+	
+			window.SliderObj.invoke("window.wcRetVal=document.getElementById('rso').innerHTML;", 'setCites');
+		}
+
+		return;
+	}
+
+	function checkNewDom(obj)
+	{
+		if(typeof obj != 'undefined')	
+		{
+			var retVal = window.SliderObj.invoke("window.wcRetVal=document.getElementById('rso').innerHTML;", 'setCites');
+
+			if(obj == '-1' && retVal)
+			{
+				setCites(retVal);
+			}
+		}else
+		{	
+			var data = this;
+			//Data.retval is boolean of !document.getElementById('WCR_Checker') ~ if not exists proceed with setting up our icons
+
+			if(data.retval == '-1') 
+			{
+				window.SliderObj.invoke("window.wcRetVal=document.getElementById('rso').innerHTML;", 'setCites');
+			} //if data.retval exists, wait until browser refreshes page and clears the Dom before setting up our icons
+		}
+
+		return;
+	}
+
+	function getCleanDomain(domain)
+	{
+		var pos = domain.indexOf('/');
+		if(pos !== -1)
+		{
+			domain = domain.substr(0, pos);
+		}
+
+		pos = domain.indexOf('www.');
+		if(pos !== -1 && pos == 0)
+		{
+			domain = domain.substr(4);
+		}
+		domain = domain.trim();
+		return domain;
+	}
+
+	function getDomainFromURL(domain)
+	{
+		var length = domain.length;
+		if (domain.indexOf('://') === -1)
+			{
+				return domain;
+			}
+			var pos = domain.indexOf('://') + 3;
+
+				domain = domain.substr(pos, length-1);
+				domain = domain.trim();
+				return domain;
+
+	}
+
+	function getHTMLText(node)
+	{
+
+		if(node.innerText)
+		{
+			return node.innerText;
+		}
+		else if(node.textContent)
+		{
+			return node.textContent;
+		}
+		return "No Supported Inner Text Function";
+	}
+
+	function setCites(obj)
+	{
+		if(typeof obj !== 'undefined')
+		{
+			var data = obj;
+			WCR_RUNNER.scriptTag = window.SliderObj.invoke("window.wcRetVal=(document.getElementById('wcr_serpId')) ? 'ie' : '0';");
+		}else
+		{	
+			var data = this.retval;
+		}
+
+		if(data)
+		{
+			var org = data;
+			org = org.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+
+
+			//$('body').append("<div id='organic_list'>" + data.retval + "</div>");
+			$('#organic_list').remove();
+			$('body').append("<div id ='organic_list'>" + org + "</div>");
+
+			var li = document.getElementsByClassName('g');//.getElementsByTagName('li')
+			var citeArray = new Array();
+			liLength = li.length;
+			if(liLength > 10)
+			{
+				//Go through max of 10 sites
+				liLength = 10;
+			}
+			for(var i=0; i < liLength; i++)
+			{
+				if(!li[i].id && li[i].tagName == 'LI')
+				{
+					var inner = getHTMLText(li[i].getElementsByTagName('cite')[0]);
+					if(inner)
+					{	
+						if(inner.indexOf(' ') != -1)
+						{
+							inner = inner.substr(0, inner.indexOf(' '));
+						}
+
+						inner = getCleanDomain(getDomainFromURL(inner), null);
+						citeArray[i] = inner;
+					}
+				}else
+				{
+					citeArray[i] = 'N/A';
+				}	
+			}
+		}
+
+		$('#organic_list').remove();
+		if(citeArray)
+		{
+			$.post('/appContent/v2/serp?1=1' + _P_OPTS, {domain: citeArray}, function(data){
+				if (!data) {
+					return;
+				}
+				var dataStr = data['domains'].join('');
+				var storeNames = data['name'].join('|');
+				var subdom = '{SUBDOM}';
+				var cause = WCR_RUNNER.response.m.cname;	
+
+				console.log(storeNames);
+
+				if(WCR_RUNNER.scriptTag == 0 || WCR_RUNNER.scriptTag == '0')
+				{
+					window.SliderObj.invoke("window.wcRetVal=1;var wcr_serpScript = document.createElement('script');wcr_serpScript.id = 'wcr_serpId';wcr_serpScript.className = document.getElementById('rso').getAttribute('eid');wcr_serpScript.setAttribute('data-key', '"+dataStr+"');wcr_serpScript.setAttribute('data-storeName', "+'"'+storeNames+'"'+");wcr_serpScript.setAttribute('data-subdom', '"+subdom+"');wcr_serpScript.setAttribute('data-cause', '"+cause+"');wcr_serpScript.src = '//"+ document.location.host + "/appContent/v2/Scripts/serpHelper.js';wcr_serpScript.type='text/javascript';document.getElementsByTagName('head')[0].appendChild(wcr_serpScript);", "setScriptTag");
+
+				}else if(WCR_RUNNER.scriptTag == 'ie')
+				{
+					window.SliderObj.invoke("var removeElement = document.getElementById('wcr_serpId');removeElement.parentNode.removeChild(removeElement);var wcr_serpScript = document.createElement('script');wcr_serpScript.id = 'wcr_serpId';wcr_serpScript.setAttribute('data-key', '"+dataStr+"');wcr_serpScript.setAttribute('data-storeName', "+'"'+storeNames+'"'+");wcr_serpScript.setAttribute('data-subdom', '"+subdom+"');wcr_serpScript.setAttribute('data-cause', '"+cause+"');wcr_serpScript.src = '//"+ document.location.host + "/appContent/v2/Scripts/serpHelper.js';wcr_serpScript.type='text/javascript';document.getElementsByTagName('head')[0].appendChild(wcr_serpScript);");
+
+				}
+				else
+				{
+					window.SliderObj.invoke("document.getElementById('wcr_serpId').remove();var wcr_serpScript = document.createElement('script');wcr_serpScript.id = 'wcr_serpId';wcr_serpScript.className = document.getElementById('rso').getAttribute('eid');wcr_serpScript.setAttribute('data-key', '"+dataStr+"');wcr_serpScript.setAttribute('data-storeName', "+'"'+storeNames+'"'+");wcr_serpScript.setAttribute('data-subdom', '"+subdom+"');wcr_serpScript.setAttribute('data-cause', '"+cause+"');wcr_serpScript.src = '//"+ document.location.host + "/appContent/v2/Scripts/serpHelper.js';wcr_serpScript.type='text/javascript';document.getElementsByTagName('head')[0].appendChild(wcr_serpScript);");
+				}
+			}, 'json');
+		}else
+		{
+			return;
+		}
+
+	}
+
+	function setScriptTag()
+	{
+		WCR_RUNNER.scriptTag = 1;	
+		return;
+	}
+
+</script>

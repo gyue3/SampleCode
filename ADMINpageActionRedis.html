@@ -1,0 +1,144 @@
+<style type='text/css'>
+	.ui-autocomplete{
+		height:150px;
+		overflow:scroll;
+	}
+	.tbl{
+		border:1px solid#000;
+		padding: 10px;
+		border-spacing: 10px;
+	}
+	#actionID{
+		width: 100px;
+	}
+	#querySubmit{
+		width: 50px;
+	}
+	.dataTable{
+		border:1px solid#000;
+		border-collapse:collapse;
+		padding: 3px;
+		border-spacing: 3px;
+	}
+	.tblHeader th{
+		border:1px solid#000;
+		padding: 3px;
+		border-spacing: 3px;
+		font-weight:bold;
+	}
+	.tblValue td{
+		border:1px solid#000;
+		padding: 3px;
+		border-spacing: 3px;
+	}
+</style>
+
+<h1>Page Action Redis</h1>
+<br><br>
+<div id='input'>
+		<table class='tbl'>
+			<tr>
+				<td>
+					<div id='domain'>Domain</div>
+					<input type='text' id='redisDomain' name='redisDomain' size='35'>
+				</td>
+				<td>
+					<br>
+					<input type='submit' id='querySubmit'>
+				</td>
+			</tr>
+		</table>
+</div>
+<br><br>
+<div id="output"></div>
+
+<script type="text/javascript" src="/admin/scripts/date_format.js"></script>
+
+<script type='text/javascript'>
+
+	function printRedisData(data, indent)
+	{
+		for(var ID in data)
+		{
+			var labelID = "label" + ID;
+			var wrapperID = ID + "wrapper";
+			$('#output').append('<div id="' + wrapperID + '"></div>');
+			$('#'+wrapperID).append('<h1 id="' + labelID + '">' + ID + '</h1><br>');
+			$('#'+wrapperID).css("margin-left", indent);
+			
+			if('meta' in data[ID])
+			{
+				var tblID = "MetaTable" + ID;
+				var headerID = "MetaTableHeader" + ID;
+			    var valueID = "MetaTableValue" + ID;
+				var labelID = "label" + ID;
+				$('#'+wrapperID).append('<h2>Meta</h2><br>');
+				$('#'+wrapperID).append('<table id="' + tblID + '"></table><br>');
+				$("#"+tblID).addClass("dataTable");
+				$("#"+tblID).append('<tr id="' + headerID + '"></tr>');
+				$("#"+headerID).addClass("tblHeader");
+				$("#"+tblID).append('<tr id="' + valueID + '"></tr>');
+				$("#"+valueID).addClass("tblValue");
+
+				for(var key in data[ID]['meta'])
+				{
+					$('#'+headerID).append('<th>'+key+'</th>');
+					$('#'+valueID).append('<td>'+data[ID]['meta'][key]+'</td>');
+				}
+			}
+			
+			if('post_action' in data[ID])
+			{
+				printRedisData(data[ID]['post_action'], indent+30);
+			}
+			
+			if('filters' in data[ID])
+			{
+				$('#'+wrapperID).append('<h2>Filters</h2><br>');
+				for(var filterID in data[ID]['filters'])
+				{
+					
+					$('#'+wrapperID).append('<h3>ID: ' + filterID + '</h3><br>');
+					
+					var tblID = "FiltersTable" + ID + "-" + filterID;
+					var headerID = "FiltersTableHeader" + ID + "-" + filterID;
+					var valueID = "FiltersTableValue" + ID + "-" + filterID;
+					var labelID = "label" + ID + "-" + filterID;
+					$('#'+wrapperID).append('<table id="' + tblID + '"></table><br>');
+					$("#"+tblID).addClass("dataTable");
+					$("#"+tblID).append('<tr id="' + headerID + '"></tr>');
+					$("#"+headerID).addClass("tblHeader");
+					$("#"+tblID).append('<tr id="' + valueID + '"></tr>');
+					$("#"+valueID).addClass("tblValue");
+					
+					for(var key in data[ID]['filters'][filterID])
+					{
+						$('#'+headerID).append('<th>'+key+'</th>');
+						$('#'+valueID).append('<td>'+data[ID]['filters'][filterID][key]+'</td>');
+					}
+				}
+			}
+		}
+	}
+	
+	
+	$('#redisDomain').autocomplete({
+		source:'/admin/Ajax/autoCompleteSource.php?source=redis',
+		minLength:3,
+		select: function(event,ui){
+		}
+	});
+
+
+	$('#querySubmit').click(function(){
+		
+		$('#output').empty();
+		
+		if($('#redisDomain').val()){ 
+			$.post('/admin/Pages/pageactionredis.php', {domain: $('#redisDomain').val()}, function(data){
+				printRedisData(data, 0);
+			}, "json");
+		}
+	});
+
+</script>
